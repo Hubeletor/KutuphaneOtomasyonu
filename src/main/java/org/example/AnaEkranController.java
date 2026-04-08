@@ -2,6 +2,8 @@ package org.example;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -13,52 +15,68 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class AnaEkranController {
 
-    // --- SAYFA PANELLERİ (StackPane içindeki sayfalarımız) ---
-    @FXML private AnchorPane pnlKitapEkle;
-    @FXML private AnchorPane pnlKitapListele;
+    // --- SAYFA PANELLERİ ---
+    @FXML private AnchorPane pnlKitapEkle, pnlKitapListele;
 
-    // --- FORM ELEMANLARI (Kitap Ekleme Sayfası) ---
-    @FXML private TextField txtKitapAdi;
-    @FXML private TextField txtYazar;
-    @FXML private TextField txtSayfaSayisi;
-    @FXML private TextField txtKiminElinde;
+    // --- FORM ELEMANLARI ---
+    @FXML private TextField txtKitapAdi, txtYazar, txtSayfaSayisi, txtKiminElinde;
     @FXML private ComboBox<String> cbDurum;
+    @FXML private Button btnKaydet; // Yeni eklediğimiz buton tanımı
 
-    // --- TABLO ELEMANLARI (Kitap Listeleme Sayfası) ---
+    // --- TABLO VE ARAMA ELEMANLARI ---
     @FXML private TableView<Kitap> tabloKitaplar;
-    @FXML private TableColumn<Kitap, String> colKitapAdi;
-    @FXML private TableColumn<Kitap, String> colYazar;
-    @FXML private TableColumn<Kitap, String> colDurum;
+    @FXML private TableColumn<Kitap, String> colKitapAdi, colYazar, colDurum;
+    @FXML private TextField txtKitapAra;
 
-    // Uygulama ilk açıldığında çalışan hazırlık metodu
+    // --- VERİ LİSTESİ VE HAFIZA ---
+    private ObservableList<Kitap> kitapListesi = FXCollections.observableArrayList();
+    private Kitap duzenlenecekKitap = null;
+
     @FXML
     public void initialize() {
-        // 1. ComboBox Seçeneklerini Doldur
+        // 1. ComboBox Seçenekleri
         if (cbDurum != null) {
             cbDurum.getItems().addAll("Kütüphanede", "Emanette", "Okunuyor", "Kayıp");
             cbDurum.setValue("Kütüphanede");
         }
 
-        // 2. Tablo Sütunlarını Kitap Sınıfı ile Eşleştir (Cell Value Factory)
-        // Buradaki isimler ("kitapAdi" vb.) Kitap.java sınıfındaki isimlerle birebir aynı olmalı
+        // 2. Tablo Sütun Bağlantıları
         colKitapAdi.setCellValueFactory(new PropertyValueFactory<>("kitapAdi"));
         colYazar.setCellValueFactory(new PropertyValueFactory<>("yazar"));
         colDurum.setCellValueFactory(new PropertyValueFactory<>("durum"));
 
-        // 3. Başlangıçta Formu Göster, Tabloyu Gizle
+        // 3. Canlı Arama Filtresi
+        FilteredList<Kitap> filtrelenmisVeri = new FilteredList<>(kitapListesi, p -> true);
+        txtKitapAra.textProperty().addListener((observable, oldValue, newValue) -> {
+            filtrelenmisVeri.setPredicate(kitap -> {
+                if (newValue == null || newValue.isEmpty()) return true;
+                String kucukHarfFiltre = newValue.toLowerCase();
+                return kitap.getKitapAdi().toLowerCase().contains(kucukHarfFiltre) ||
+                        kitap.getYazar().toLowerCase().contains(kucukHarfFiltre);
+            });
+        });
+
+        SortedList<Kitap> siraliVeri = new SortedList<>(filtrelenmisVeri);
+        siraliVeri.comparatorProperty().bind(tabloKitaplar.comparatorProperty());
+        tabloKitaplar.setItems(siraliVeri);
+
+        // Başlangıç görünümü
         pnlKitapEkle.setVisible(true);
         pnlKitapListele.setVisible(false);
     }
 
-    // --- MENÜ GEÇİŞLERİ ---
-
+    // --- SAYFA GEÇİŞLERİ ---
     @FXML
     public void sayfaEkleGoster(ActionEvent event) {
+        duzenlenecekKitap = null; // Yeni kayıt moduna geç
+        btnKaydet.setText("Kitabı Kaydet"); // Buton metnini sıfırla
+
+        txtKitapAdi.clear();
+        txtYazar.clear();
+        txtKiminElinde.clear();
+
         pnlKitapEkle.setVisible(true);
         pnlKitapListele.setVisible(false);
     }
@@ -67,14 +85,10 @@ public class AnaEkranController {
     public void sayfaListeGoster(ActionEvent event) {
         pnlKitapEkle.setVisible(false);
         pnlKitapListele.setVisible(true);
-
-        // Liste sayfasına her geçildiğinde veritabanından güncel verileri çek
         tabloyuVerilerleDoldur();
     }
 
-    // --- MONGODB İŞLEMLERİ ---
-
-    // 1. VERİ KAYDETME (Kitap Ekle)
+    // --- VERİTABANI İŞLEMLERİ ---
     @FXML
     public void kitapEkleButonunaTiklandi(ActionEvent event) {
         String kitapAdi = txtKitapAdi.getText();
@@ -91,51 +105,94 @@ public class AnaEkranController {
             MongoDatabase database = mongoClient.getDatabase("KutuphaneDB");
             MongoCollection<Document> collection = database.getCollection("Kitaplar");
 
-            Document yeniKitap = new Document("kitapAdi", kitapAdi)
-                    .append("yazar", yazar)
-                    .append("durum", durum)
-                    .append("kiminElinde", durum.equals("Emanette") ? kiminElinde : "-");
+            if (duzenlenecekKitap == null) {
+                // MOD: YENİ EKLEME
+                Document yeniDoc = new Document("kitapAdi", kitapAdi)
+                        .append("yazar", yazar)
+                        .append("durum", durum)
+                        .append("kiminElinde", durum.equals("Emanette") ? kiminElinde : "-");
 
-            collection.insertOne(yeniKitap);
-            mesajGoster("Başarılı", "'" + kitapAdi + "' başarıyla eklendi!", Alert.AlertType.INFORMATION);
+                collection.insertOne(yeniDoc);
+                mesajGoster("Başarılı", "Yeni kitap eklendi.", Alert.AlertType.INFORMATION);
+            } else {
+                // MOD: GÜNCELLEME
+                collection.updateOne(
+                        new Document("kitapAdi", duzenlenecekKitap.getKitapAdi()),
+                        new Document("$set", new Document("kitapAdi", kitapAdi)
+                                .append("yazar", yazar)
+                                .append("durum", durum)
+                                .append("kiminElinde", durum.equals("Emanette") ? kiminElinde : "-"))
+                );
 
-            // Temizlik
+                mesajGoster("Başarılı", "Kitap bilgileri güncellendi.", Alert.AlertType.INFORMATION);
+                duzenlenecekKitap = null; // İşlem bitince hafızayı sıfırla
+                btnKaydet.setText("Kitabı Kaydet"); // Butonu eski haline getir
+            }
+
+            // Formu temizle
             txtKitapAdi.clear();
             txtYazar.clear();
-            txtSayfaSayisi.clear();
             txtKiminElinde.clear();
 
         } catch (Exception e) {
-            mesajGoster("Hata", "Veritabanına kaydedilemedi: " + e.getMessage(), Alert.AlertType.ERROR);
+            mesajGoster("Hata", "İşlem başarısız: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
 
-    // 2. VERİ ÇEKME (MongoDB'den Tabloya)
-    private void tabloyuVerilerleDoldur() {
-        ObservableList<Kitap> kitapListesi = FXCollections.observableArrayList();
+    @FXML
+    public void kitapSilButonunaTiklandi(ActionEvent event) {
+        Kitap seciliKitap = tabloKitaplar.getSelectionModel().getSelectedItem();
+        if (seciliKitap == null) {
+            mesajGoster("Uyarı", "Lütfen tablodan bir kitap seçin!", Alert.AlertType.WARNING);
+            return;
+        }
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setHeaderText(null);
+        alert.setContentText(seciliKitap.getKitapAdi() + " silinsin mi?");
 
+        if (alert.showAndWait().get() == ButtonType.OK) {
+            try (MongoClient mongoClient = MongoClients.create("mongodb://localhost:27017")) {
+                MongoDatabase database = mongoClient.getDatabase("KutuphaneDB");
+                MongoCollection<Document> collection = database.getCollection("Kitaplar");
+                collection.deleteOne(new Document("kitapAdi", seciliKitap.getKitapAdi()));
+                tabloyuVerilerleDoldur();
+                mesajGoster("Başarılı", "Kitap silindi.", Alert.AlertType.INFORMATION);
+            }
+        }
+    }
+
+    private void tabloyuVerilerleDoldur() {
+        kitapListesi.clear();
         try (MongoClient mongoClient = MongoClients.create("mongodb://localhost:27017")) {
             MongoDatabase database = mongoClient.getDatabase("KutuphaneDB");
             MongoCollection<Document> collection = database.getCollection("Kitaplar");
-
-            // Tüm dökümanları çek ve Kitap nesnesine çevirerek listeye ekle
             for (Document doc : collection.find()) {
-                kitapListesi.add(new Kitap(
-                        doc.getString("kitapAdi"),
-                        doc.getString("yazar"),
-                        doc.getString("durum")
-                ));
+                kitapListesi.add(new Kitap(doc.getString("kitapAdi"), doc.getString("yazar"), doc.getString("durum")));
             }
-
-            // Oluşturduğumuz listeyi tabloya bas
-            tabloKitaplar.setItems(kitapListesi);
-
         } catch (Exception e) {
-            System.err.println("Veriler çekilirken hata oluştu: " + e.getMessage());
+            System.err.println("Veri çekme hatası: " + e.getMessage());
         }
     }
 
-    // Ortak mesaj kutusu fonksiyonu
+    @FXML
+    public void kitapDuzenleButonunaTiklandi(ActionEvent event) {
+        Kitap seciliKitap = tabloKitaplar.getSelectionModel().getSelectedItem();
+        if (seciliKitap == null) {
+            mesajGoster("Uyarı", "Lütfen düzenlenecek kitabı seçin!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        duzenlenecekKitap = seciliKitap;
+        btnKaydet.setText("Değişiklikleri Güncelle"); // Düzenleme modunda buton metni değişir
+
+        txtKitapAdi.setText(seciliKitap.getKitapAdi());
+        txtYazar.setText(seciliKitap.getYazar());
+        cbDurum.setValue(seciliKitap.getDurum());
+
+        pnlKitapEkle.setVisible(true);
+        pnlKitapListele.setVisible(false);
+    }
+
     private void mesajGoster(String baslik, String icerik, Alert.AlertType tip) {
         Alert alert = new Alert(tip);
         alert.setTitle(baslik);

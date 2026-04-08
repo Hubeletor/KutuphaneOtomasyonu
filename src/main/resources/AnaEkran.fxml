@@ -28,16 +28,19 @@
                <children>
                   <AnchorPane fx:id="pnlKitapListele" prefHeight="200.0" prefWidth="200.0">
                      <children>
-                        <TableView fx:id="tabloKitaplar" layoutY="-2.0" prefHeight="406.0" prefWidth="502.0">
+                        <Button fx:id="btnDuzenle" layoutX="323.0" layoutY="20.0" mnemonicParsing="false" onAction="#kitapDuzenleButonunaTiklandi" text="Düzenle" />
+                        <Button fx:id="btnSil" layoutX="392.0" layoutY="20.0" mnemonicParsing="false" onAction="#kitapSilButonunaTiklandi" text="Sil" />
+                        <TextField fx:id="txtKitapAra" layoutX="156.0" layoutY="20.0" promptText="Kitap adı veya yazar ara..." />
+                        <TableView fx:id="tabloKitaplar" layoutY="67.0" prefHeight="404.0" prefWidth="502.0">
                           <columns>
                             <TableColumn fx:id="colKitapAdi" prefWidth="124.79999542236328" text="Kitap Adı" />
-                            <TableColumn fx:id="colYazar" prefWidth="158.4000244140625" text="Yazar" />
-                              <TableColumn fx:id="colDurum" minWidth="0.0" prefWidth="148.79995727539062" text="Durum" />
+                            <TableColumn fx:id="colYazar" prefWidth="160.0" text="Yazar" />
+                              <TableColumn fx:id="colDurum" minWidth="0.0" prefWidth="147.99996948242188" text="Durum" />
                           </columns>
                         </TableView>
                      </children>
                   </AnchorPane>
-                  <AnchorPane fx:id="pnlKitapEkle" prefHeight="200.0" prefWidth="200.0">
+                  <AnchorPane fx:id="pnlKitapEkle" prefHeight="200.0" prefWidth="200.0" visible="false">
                      <children>
                         <TextField fx:id="txtKitapAdi" layoutX="175.0" layoutY="20.0" />
                         <TextField fx:id="txtYazar" layoutX="175.0" layoutY="64.0" />
