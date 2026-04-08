@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:latest
+    container_name: kutuphane-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=12345
+      - POSTGRES_DB=kutuphanedb
+    ports:
+      - "5432:5432"
+    restart: always
+
+  mongo-db:
+    image: mongo:latest
+    container_name: kutuphane-mongo
+    ports:
+      - "27017:27017"
+    restart: always

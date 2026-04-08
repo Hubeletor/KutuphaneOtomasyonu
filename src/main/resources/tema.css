@@ -1,0 +1,20 @@
+/* Butonun normal hali */
+.havali-buton {
+    -fx-background-color: transparent; /* Arka planı şeffaf yap */
+    -fx-text-fill: white; /* Yazıyı beyaz yap */
+    -fx-border-color: #34495e; /* Alt çizgi rengi */
+    -fx-border-width: 0 0 1 0; /* Sadece alta çizgi çek */
+    -fx-cursor: hand; /* Fare el işareti olsun */
+    -fx-transition: -fx-background-color 0.3s;
+}
+
+/* Fare butonun ÜZERİNE GELDİĞİNDE */
+.havali-buton:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.15);
+    -fx-border-color: white; /* Üzerine gelince alt çizgiyi de parlatabiliriz */
+}
+
+/* Butona TIKLANDIĞI ANDA */
+.havali-buton:pressed {
+    -fx-background-color: rgba(255, 255, 255, 0.3);
+}

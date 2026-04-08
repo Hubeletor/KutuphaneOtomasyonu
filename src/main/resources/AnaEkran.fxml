@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane prefHeight="400.0" prefWidth="600.0" stylesheets="@tema.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.AnaEkranController">
+   <children>
+      <BorderPane layoutX="200.0" layoutY="100.0" prefHeight="400.0" prefWidth="600.0" stylesheets="@tema.css" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+         <left>
+            <VBox prefHeight="200.0" prefWidth="100.0" style="-fx-background-color: #2c3e50;" BorderPane.alignment="CENTER">
+               <children>
+                  <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sayfaEkleGoster" prefHeight="50.0" styleClass="havali-buton" text="Kitap Ekle" />
+                  <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sayfaListeGoster" prefHeight="50.0" styleClass="havali-buton" text="Kitap Listele" />
+                  <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" prefHeight="50.0" styleClass="havali-buton" text="Üye Yönetimi" />
+               </children>
+            </VBox>
+         </left>
+         <center>
+            <StackPane BorderPane.alignment="CENTER">
+               <children>
+                  <AnchorPane fx:id="pnlKitapListele" prefHeight="200.0" prefWidth="200.0">
+                     <children>
+                        <TableView fx:id="tabloKitaplar" layoutY="-2.0" prefHeight="406.0" prefWidth="502.0">
+                          <columns>
+                            <TableColumn fx:id="colKitapAdi" prefWidth="124.79999542236328" text="Kitap Adı" />
+                            <TableColumn fx:id="colYazar" prefWidth="158.4000244140625" text="Yazar" />
+                              <TableColumn fx:id="colDurum" minWidth="0.0" prefWidth="148.79995727539062" text="Durum" />
+                          </columns>
+                        </TableView>
+                     </children>
+                  </AnchorPane>
+                  <AnchorPane fx:id="pnlKitapEkle" prefHeight="200.0" prefWidth="200.0">
+                     <children>
+                        <TextField fx:id="txtKitapAdi" layoutX="175.0" layoutY="20.0" />
+                        <TextField fx:id="txtYazar" layoutX="175.0" layoutY="64.0" />
+                        <TextField fx:id="txtSayfaSayisi" layoutX="175.0" layoutY="107.0" />
+                        <ComboBox fx:id="cbDurum" layoutX="175.0" layoutY="200.0" prefWidth="150.0" />
+                        <TextField fx:id="txtKiminElinde" layoutX="175.0" layoutY="151.0" />
+                        <Label layoutX="96.0" layoutY="24.0" text="KitapAdı:" />
+                        <Label layoutX="105.0" layoutY="68.0" text="Yazar:" />
+                        <Label layoutX="89.0" layoutY="111.0" text="Sayfa Sayısı:" />
+                        <Label layoutX="95.0" layoutY="155.0" text="Kimin Elinde:" />
+                        <Label layoutX="100.0" layoutY="204.0" text="Durum:" />
+                        <Button fx:id="btnKaydet" layoutX="213.0" layoutY="264.0" mnemonicParsing="false" onAction="#kitapEkleButonunaTiklandi" text="Kaydet" />
+                     </children>
+                  </AnchorPane>
+               </children>
+            </StackPane>
+         </center>
+      </BorderPane>
+   </children>
+</AnchorPane>
