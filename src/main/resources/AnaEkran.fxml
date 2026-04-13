@@ -26,11 +26,11 @@
          <center>
             <StackPane BorderPane.alignment="CENTER">
                <children>
-                  <AnchorPane fx:id="pnlKitapListele" prefHeight="200.0" prefWidth="200.0">
+                  <AnchorPane fx:id="pnlKitapListele" prefHeight="200.0" prefWidth="200.0" visible="false">
                      <children>
-                        <Button fx:id="btnDuzenle" layoutX="323.0" layoutY="20.0" mnemonicParsing="false" onAction="#kitapDuzenleButonunaTiklandi" text="Düzenle" />
-                        <Button fx:id="btnSil" layoutX="392.0" layoutY="20.0" mnemonicParsing="false" onAction="#kitapSilButonunaTiklandi" text="Sil" />
-                        <TextField fx:id="txtKitapAra" layoutX="156.0" layoutY="20.0" promptText="Kitap adı veya yazar ara..." />
+                        <Button fx:id="btnDuzenle" layoutX="365.0" layoutY="20.0" mnemonicParsing="false" onAction="#kitapDuzenleButonunaTiklandi" text="Seçili Kitabı Düzenle" />
+                        <Button fx:id="btnSil" layoutX="258.0" layoutY="20.0" mnemonicParsing="false" onAction="#kitapSilButonunaTiklandi" text="Seçili Kitabı Sil" />
+                        <TextField fx:id="txtKitapAra" layoutX="90.0" layoutY="20.0" promptText="Kitap adı veya yazar ara..." />
                         <TableView fx:id="tabloKitaplar" layoutY="67.0" prefHeight="404.0" prefWidth="502.0">
                           <columns>
                             <TableColumn fx:id="colKitapAdi" prefWidth="124.79999542236328" text="Kitap Adı" />
@@ -40,7 +40,7 @@
                         </TableView>
                      </children>
                   </AnchorPane>
-                  <AnchorPane fx:id="pnlKitapEkle" prefHeight="200.0" prefWidth="200.0" visible="false">
+                  <AnchorPane fx:id="pnlKitapEkle" prefHeight="200.0" prefWidth="200.0">
                      <children>
                         <TextField fx:id="txtKitapAdi" layoutX="175.0" layoutY="20.0" />
                         <TextField fx:id="txtYazar" layoutX="175.0" layoutY="64.0" />
@@ -52,7 +52,7 @@
                         <Label layoutX="89.0" layoutY="111.0" text="Sayfa Sayısı:" />
                         <Label layoutX="95.0" layoutY="155.0" text="Kimin Elinde:" />
                         <Label layoutX="100.0" layoutY="204.0" text="Durum:" />
-                        <Button fx:id="btnKaydet" layoutX="213.0" layoutY="264.0" mnemonicParsing="false" onAction="#kitapEkleButonunaTiklandi" text="Kaydet" />
+                        <Button fx:id="btnKaydet" layoutX="207.0" layoutY="252.0" mnemonicParsing="false" onAction="#kitapEkleButonunaTiklandi" text="Kitabı Kaydet" />
                      </children>
                   </AnchorPane>
                </children>
