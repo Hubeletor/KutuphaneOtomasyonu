@@ -14,17 +14,22 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class AnaEkranController {
 
-    // DNS (TXT record) hatasını aşmak için kullanılan Standart Bağlantı Adresi
     private final String ATLAS_URI = "mongodb://efeesenel_db_user:XiC6pMuFGQq7qMvc@ac-cjdk7tt-shard-00-00.lag4a4l.mongodb.net:27017,ac-cjdk7tt-shard-00-01.lag4a4l.mongodb.net:27017,ac-cjdk7tt-shard-00-02.lag4a4l.mongodb.net:27017/?ssl=true&replicaSet=atlas-sxm2tq-shard-0&authSource=admin&appName=KutuphaneCluster";
+
+    // --- BAĞLANTIYI SINIF SEVİYESİNE TAŞIDIK (HIZ İÇİN) ---
+    private MongoClient mongoClient;
+    private MongoDatabase database;
+    private MongoCollection<Document> collection;
 
     @FXML private AnchorPane pnlKitapEkle, pnlKitapListele;
     @FXML private TextField txtKitapAdi, txtYazar, txtSayfaSayisi, txtKiminElinde;
     @FXML private ComboBox<String> cbDurum;
     @FXML private Button btnKaydet;
-
     @FXML private TableView<Kitap> tabloKitaplar;
     @FXML private TableColumn<Kitap, String> colKitapAdi, colYazar, colDurum;
     @FXML private TextField txtKitapAra;
@@ -34,6 +39,19 @@ public class AnaEkranController {
 
     @FXML
     public void initialize() {
+        // Log kirliliğini engelle
+        Logger.getLogger("org.mongodb.driver").setLevel(Level.OFF);
+
+        // --- UYGULAMA AÇILIRKEN BAĞLANTIYI BİR KEZ KURUYORUZ ---
+        try {
+            mongoClient = MongoClients.create(ATLAS_URI);
+            database = mongoClient.getDatabase("KutuphaneDB");
+            collection = database.getCollection("Kitaplar");
+            System.out.println("Atlas bağlantısı başarıyla kuruldu ve açık tutuluyor.");
+        } catch (Exception e) {
+            System.err.println("İlk bağlantı hatası: " + e.getMessage());
+        }
+
         if (cbDurum != null) {
             cbDurum.getItems().addAll("Kütüphanede", "Emanette", "Okunuyor", "Kayıp");
             cbDurum.setValue("Kütüphanede");
@@ -62,24 +80,6 @@ public class AnaEkranController {
     }
 
     @FXML
-    public void sayfaEkleGoster(ActionEvent event) {
-        duzenlenecekKitap = null;
-        btnKaydet.setText("Kitabı Kaydet");
-        txtKitapAdi.clear();
-        txtYazar.clear();
-        txtKiminElinde.clear();
-        pnlKitapEkle.setVisible(true);
-        pnlKitapListele.setVisible(false);
-    }
-
-    @FXML
-    public void sayfaListeGoster(ActionEvent event) {
-        pnlKitapEkle.setVisible(false);
-        pnlKitapListele.setVisible(true);
-        tabloyuVerilerleDoldur();
-    }
-
-    @FXML
     public void kitapEkleButonunaTiklandi(ActionEvent event) {
         String kitapAdi = txtKitapAdi.getText();
         String yazar = txtYazar.getText();
@@ -91,17 +91,15 @@ public class AnaEkranController {
             return;
         }
 
-        try (MongoClient mongoClient = MongoClients.create(ATLAS_URI)) {
-            MongoDatabase database = mongoClient.getDatabase("KutuphaneDB");
-            MongoCollection<Document> collection = database.getCollection("Kitaplar");
-
+        try {
+            // Artık try-with-resources (MongoClient aç/kapat) kullanmıyoruz, hazır olanı kullanıyoruz!
             if (duzenlenecekKitap == null) {
                 Document yeniDoc = new Document("kitapAdi", kitapAdi)
                         .append("yazar", yazar)
                         .append("durum", durum)
                         .append("kiminElinde", durum.equals("Emanette") ? kiminElinde : "-");
                 collection.insertOne(yeniDoc);
-                mesajGoster("Başarılı", "Kitap Atlas'a başarıyla eklendi!", Alert.AlertType.INFORMATION);
+                mesajGoster("Başarılı", "Kitap kaydedildi!", Alert.AlertType.INFORMATION);
             } else {
                 collection.updateOne(
                         new Document("kitapAdi", duzenlenecekKitap.getKitapAdi()),
@@ -112,11 +110,11 @@ public class AnaEkranController {
                 );
                 duzenlenecekKitap = null;
                 btnKaydet.setText("Kitabı Kaydet");
-                mesajGoster("Başarılı", "Kitap başarıyla güncellendi!", Alert.AlertType.INFORMATION);
+                mesajGoster("Başarılı", "Güncellendi!", Alert.AlertType.INFORMATION);
             }
             txtKitapAdi.clear(); txtYazar.clear(); txtKiminElinde.clear();
         } catch (Exception e) {
-            mesajGoster("Bağlantı Hatası", "Atlas sunucusuna ulaşılamadı: " + e.getMessage(), Alert.AlertType.ERROR);
+            mesajGoster("İşlem Hatası", "Veri gönderilemedi: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
 
@@ -125,27 +123,41 @@ public class AnaEkranController {
         Kitap seciliKitap = tabloKitaplar.getSelectionModel().getSelectedItem();
         if (seciliKitap == null) return;
 
-        if (new Alert(Alert.AlertType.CONFIRMATION, "Silmek istediğinize emin misiniz?").showAndWait().get() == ButtonType.OK) {
-            try (MongoClient mongoClient = MongoClients.create(ATLAS_URI)) {
-                MongoDatabase database = mongoClient.getDatabase("KutuphaneDB");
-                MongoCollection<Document> collection = database.getCollection("Kitaplar");
+        if (new Alert(Alert.AlertType.CONFIRMATION, "Silinsin mi?").showAndWait().get() == ButtonType.OK) {
+            try {
                 collection.deleteOne(new Document("kitapAdi", seciliKitap.getKitapAdi()));
                 tabloyuVerilerleDoldur();
+            } catch (Exception e) {
+                System.err.println("Silme hatası: " + e.getMessage());
             }
         }
     }
 
     private void tabloyuVerilerleDoldur() {
         kitapListesi.clear();
-        try (MongoClient mongoClient = MongoClients.create(ATLAS_URI)) {
-            MongoDatabase database = mongoClient.getDatabase("KutuphaneDB");
-            MongoCollection<Document> collection = database.getCollection("Kitaplar");
+        try {
+            // Bağlantı zaten açık, direkt veriyi çekiyoruz
             for (Document doc : collection.find()) {
                 kitapListesi.add(new Kitap(doc.getString("kitapAdi"), doc.getString("yazar"), doc.getString("durum")));
             }
         } catch (Exception e) {
             System.err.println("Veri çekme hatası: " + e.getMessage());
         }
+    }
+
+    // --- DİĞER METODLAR (SAYFA DEĞİŞTİRME VS.) ---
+    @FXML
+    public void sayfaEkleGoster(ActionEvent event) {
+        duzenlenecekKitap = null;
+        btnKaydet.setText("Kitabı Kaydet");
+        txtKitapAdi.clear(); txtYazar.clear();
+        pnlKitapEkle.setVisible(true); pnlKitapListele.setVisible(false);
+    }
+
+    @FXML
+    public void sayfaListeGoster(ActionEvent event) {
+        pnlKitapEkle.setVisible(false); pnlKitapListele.setVisible(true);
+        tabloyuVerilerleDoldur();
     }
 
     @FXML
@@ -157,8 +169,7 @@ public class AnaEkranController {
         txtKitapAdi.setText(seciliKitap.getKitapAdi());
         txtYazar.setText(seciliKitap.getYazar());
         cbDurum.setValue(seciliKitap.getDurum());
-        pnlKitapEkle.setVisible(true);
-        pnlKitapListele.setVisible(false);
+        pnlKitapEkle.setVisible(true); pnlKitapListele.setVisible(false);
     }
 
     private void mesajGoster(String baslik, String icerik, Alert.AlertType tip) {
