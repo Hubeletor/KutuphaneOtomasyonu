@@ -9,16 +9,16 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.AnchorPane;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import org.bson.Document;
+
+// PostgreSQL için gerekli SQL kütüphaneleri
+import java.sql.*;
 
 public class AnaEkranController {
 
-    // DNS (TXT record) hatasını aşmak için kullanılan Standart Bağlantı Adresi
-    private final String ATLAS_URI = "mongodb://efeesenel_db_user:XiC6pMuFGQq7qMvc@ac-cjdk7tt-shard-00-00.lag4a4l.mongodb.net:27017,ac-cjdk7tt-shard-00-01.lag4a4l.mongodb.net:27017,ac-cjdk7tt-shard-00-02.lag4a4l.mongodb.net:27017/?ssl=true&replicaSet=atlas-sxm2tq-shard-0&authSource=admin&appName=KutuphaneCluster";
+    // Neon Bulut PostgreSQL Bağlantı Bilgileri
+    private final String JDBC_URL = "jdbc:postgresql://ep-dark-fog-aljbcm61-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require";
+    private final String USER = "neondb_owner";
+    private final String PASSWORD = "****************";
 
     @FXML private AnchorPane pnlKitapEkle, pnlKitapListele;
     @FXML private TextField txtKitapAdi, txtYazar, txtSayfaSayisi, txtKiminElinde;
@@ -91,32 +91,36 @@ public class AnaEkranController {
             return;
         }
 
-        try (MongoClient mongoClient = MongoClients.create(ATLAS_URI)) {
-            MongoDatabase database = mongoClient.getDatabase("KutuphaneDB");
-            MongoCollection<Document> collection = database.getCollection("Kitaplar");
+        String sql;
+        if (duzenlenecekKitap == null) {
+            // Ekleme sorgusu
+            sql = "INSERT INTO kitaplar (kitap_adi, yazar, durum, kimin_elinde) VALUES (?, ?, ?, ?)";
+        } else {
+            // Güncelleme sorgusu
+            sql = "UPDATE kitaplar SET kitap_adi=?, yazar=?, durum=?, kimin_elinde=? WHERE kitap_adi=?";
+        }
 
-            if (duzenlenecekKitap == null) {
-                Document yeniDoc = new Document("kitapAdi", kitapAdi)
-                        .append("yazar", yazar)
-                        .append("durum", durum)
-                        .append("kiminElinde", durum.equals("Emanette") ? kiminElinde : "-");
-                collection.insertOne(yeniDoc);
-                mesajGoster("Başarılı", "Kitap Atlas'a başarıyla eklendi!", Alert.AlertType.INFORMATION);
-            } else {
-                collection.updateOne(
-                        new Document("kitapAdi", duzenlenecekKitap.getKitapAdi()),
-                        new Document("$set", new Document("kitapAdi", kitapAdi)
-                                .append("yazar", yazar)
-                                .append("durum", durum)
-                                .append("kiminElinde", durum.equals("Emanette") ? kiminElinde : "-"))
-                );
-                duzenlenecekKitap = null;
-                btnKaydet.setText("Kitabı Kaydet");
-                mesajGoster("Başarılı", "Kitap başarıyla güncellendi!", Alert.AlertType.INFORMATION);
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, kitapAdi);
+            pstmt.setString(2, yazar);
+            pstmt.setString(3, durum);
+            pstmt.setString(4, durum.equals("Emanette") ? kiminElinde : "-");
+
+            if (duzenlenecekKitap != null) {
+                pstmt.setString(5, duzenlenecekKitap.getKitapAdi());
             }
+
+            pstmt.executeUpdate();
+            mesajGoster("Başarılı", duzenlenecekKitap == null ? "Kitap başarıyla eklendi!" : "Kitap başarıyla güncellendi!", Alert.AlertType.INFORMATION);
+
+            duzenlenecekKitap = null;
+            btnKaydet.setText("Kitabı Kaydet");
             txtKitapAdi.clear(); txtYazar.clear(); txtKiminElinde.clear();
-        } catch (Exception e) {
-            mesajGoster("Bağlantı Hatası", "Atlas sunucusuna ulaşılamadı: " + e.getMessage(), Alert.AlertType.ERROR);
+
+        } catch (SQLException e) {
+            mesajGoster("Veritabanı Hatası", "Hata oluştu: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
 
@@ -126,24 +130,36 @@ public class AnaEkranController {
         if (seciliKitap == null) return;
 
         if (new Alert(Alert.AlertType.CONFIRMATION, "Silmek istediğinize emin misiniz?").showAndWait().get() == ButtonType.OK) {
-            try (MongoClient mongoClient = MongoClients.create(ATLAS_URI)) {
-                MongoDatabase database = mongoClient.getDatabase("KutuphaneDB");
-                MongoCollection<Document> collection = database.getCollection("Kitaplar");
-                collection.deleteOne(new Document("kitapAdi", seciliKitap.getKitapAdi()));
-                tabloyuVerilerleDoldur();
+            String sql = "DELETE FROM kitaplar WHERE kitap_adi = ?";
+            try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
+                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                pstmt.setString(1, seciliKitap.getKitapAdi());
+                pstmt.executeUpdate();
+                tabloyuVerilerleDoldur(); // Tabloyu yenile
+
+            } catch (SQLException e) {
+                mesajGoster("Hata", "Silme işlemi başarısız: " + e.getMessage(), Alert.AlertType.ERROR);
             }
         }
     }
 
     private void tabloyuVerilerleDoldur() {
         kitapListesi.clear();
-        try (MongoClient mongoClient = MongoClients.create(ATLAS_URI)) {
-            MongoDatabase database = mongoClient.getDatabase("KutuphaneDB");
-            MongoCollection<Document> collection = database.getCollection("Kitaplar");
-            for (Document doc : collection.find()) {
-                kitapListesi.add(new Kitap(doc.getString("kitapAdi"), doc.getString("yazar"), doc.getString("durum")));
+        String sql = "SELECT * FROM kitaplar";
+
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                kitapListesi.add(new Kitap(
+                        rs.getString("kitap_adi"),
+                        rs.getString("yazar"),
+                        rs.getString("durum")
+                ));
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             System.err.println("Veri çekme hatası: " + e.getMessage());
         }
     }
@@ -152,11 +168,13 @@ public class AnaEkranController {
     public void kitapDuzenleButonunaTiklandi(ActionEvent event) {
         Kitap seciliKitap = tabloKitaplar.getSelectionModel().getSelectedItem();
         if (seciliKitap == null) return;
+
         duzenlenecekKitap = seciliKitap;
         btnKaydet.setText("Değişiklikleri Güncelle");
         txtKitapAdi.setText(seciliKitap.getKitapAdi());
         txtYazar.setText(seciliKitap.getYazar());
         cbDurum.setValue(seciliKitap.getDurum());
+
         pnlKitapEkle.setVisible(true);
         pnlKitapListele.setVisible(false);
     }
