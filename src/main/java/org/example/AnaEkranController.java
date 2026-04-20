@@ -18,7 +18,7 @@ public class AnaEkranController {
     // Neon Bulut PostgreSQL Bağlantı Bilgileri
     private final String JDBC_URL = "jdbc:postgresql://ep-dark-fog-aljbcm61-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require";
     private final String USER = "neondb_owner";
-    private final String PASSWORD = "****************";
+    private final String PASSWORD = "npg_6qi9dCQKRzgr";
 
     @FXML private AnchorPane pnlKitapEkle, pnlKitapListele;
     @FXML private TextField txtKitapAdi, txtYazar, txtSayfaSayisi, txtKiminElinde;
@@ -59,6 +59,12 @@ public class AnaEkranController {
 
         pnlKitapEkle.setVisible(true);
         pnlKitapListele.setVisible(false);
+
+        tabloyuVerilerleDoldur();
+
+        pnlKitapEkle.setVisible(true);
+        pnlKitapListele.setVisible(false);
+
     }
 
     @FXML
