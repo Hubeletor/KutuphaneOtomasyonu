@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
@@ -10,16 +11,17 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 
 <AnchorPane prefHeight="400.0" prefWidth="600.0" stylesheets="@tema.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.AnaEkranController">
    <children>
-      <BorderPane layoutX="200.0" layoutY="100.0" prefHeight="400.0" prefWidth="600.0" stylesheets="@tema.css" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+      <BorderPane prefHeight="400.0" prefWidth="600.0" stylesheets="@tema.css" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <left>
             <VBox prefHeight="200.0" prefWidth="100.0" style="-fx-background-color: #2c3e50;" BorderPane.alignment="CENTER">
                <children>
                   <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sayfaEkleGoster" prefHeight="50.0" styleClass="havali-buton" text="Kitap Ekle" />
                   <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sayfaListeGoster" prefHeight="50.0" styleClass="havali-buton" text="Kitap Listele" />
-                  <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" prefHeight="50.0" styleClass="havali-buton" text="Üye Yönetimi" />
+                  <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sayfaUyeGoster" prefHeight="50.0" styleClass="havali-buton" text="Üye Yönetimi" />
                </children>
             </VBox>
          </left>
@@ -40,7 +42,7 @@
                         </TableView>
                      </children>
                   </AnchorPane>
-                  <AnchorPane fx:id="pnlKitapEkle" prefHeight="200.0" prefWidth="200.0">
+                  <AnchorPane fx:id="pnlKitapEkle" prefHeight="200.0" prefWidth="200.0" visible="false">
                      <children>
                         <TextField fx:id="txtKitapAdi" layoutX="175.0" layoutY="20.0" />
                         <TextField fx:id="txtYazar" layoutX="175.0" layoutY="64.0" />
@@ -53,6 +55,39 @@
                         <Label layoutX="95.0" layoutY="155.0" text="Kimin Elinde:" />
                         <Label layoutX="100.0" layoutY="204.0" text="Durum:" />
                         <Button fx:id="btnKaydet" layoutX="207.0" layoutY="252.0" mnemonicParsing="false" onAction="#kitapEkleButonunaTiklandi" text="Kitabı Kaydet" />
+                     </children>
+                  </AnchorPane>
+                  <AnchorPane fx:id="pnlUyeYonetimi" prefHeight="456.0" prefWidth="489.0">
+                     <children>
+                        <VBox alignment="CENTER_LEFT" layoutX="13.0" layoutY="141.0" prefHeight="158.0" prefWidth="181.0" spacing="15.0">
+                           <children>
+                              <TextField fx:id="txtUyeAdSoyad" maxWidth="200.0" prefHeight="30.0" prefWidth="200.0" promptText=" Ad Soyad Yazınız" />
+                              <TextField fx:id="txtUyeTelefon" maxWidth="200.0" prefHeight="30.0" prefWidth="200.0" promptText="Telefon" />
+                              <TextField fx:id="txtUyeEposta" maxWidth="200.0" prefHeight="30.0" prefWidth="200.0" promptText="E-posta" />
+                           </children>
+                           <padding>
+                              <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                           </padding>
+                        </VBox>
+                        <TableView fx:id="tabloUyeler" layoutX="179.0" layoutY="43.0" prefHeight="475.0" prefWidth="300.0" AnchorPane.bottomAnchor="50.0" AnchorPane.rightAnchor="170.0" AnchorPane.topAnchor="50.0">
+                          <columns>
+                            <TableColumn fx:id="colUyeId" prefWidth="75.0" text="ID" />
+                            <TableColumn fx:id="colUyeAdSoyad" prefWidth="75.0" text="Ad Soyad" />
+                              <TableColumn fx:id="colUyeTelefon" prefWidth="75.0" text="Telefon" />
+                              <TableColumn fx:id="colUyeEposta" prefWidth="75.0" text="E-posta" />
+                          </columns>
+                           <columnResizePolicy>
+                              <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                           </columnResizePolicy>
+                        </TableView>
+                        <Label layoutX="34.0" layoutY="110.0" text="YENİ ÜYE EKLE" textFill="#1162dc">
+                           <font>
+                              <Font name="System Bold" size="20.0" />
+                           </font>
+                        </Label>
+                        <Button fx:id="btnUyeKaydet" layoutX="60.0" layoutY="311.0" mnemonicParsing="false" onAction="#uyeKaydetButonunaTiklandi" text="Üyeyi Kaydet" />
+                        <Button layoutX="59.0" layoutY="346.0" mnemonicParsing="false" onAction="#uyeSilButonunaTiklandi" prefHeight="26.0" prefWidth="87.0" text="Üyeyi Sil" />
+                        <Button layoutX="59.0" layoutY="380.0" mnemonicParsing="false" onAction="#uyeDuzenleButonunaTiklandi" prefHeight="26.0" prefWidth="86.0" text="Düzenle" />
                      </children>
                   </AnchorPane>
                </children>

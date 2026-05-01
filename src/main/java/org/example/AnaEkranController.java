@@ -29,6 +29,95 @@ public class AnaEkranController {
     @FXML private TableColumn<Kitap, String> colKitapAdi, colYazar, colDurum;
     @FXML private TextField txtKitapAra;
 
+    @FXML private AnchorPane pnlUyeYonetimi;
+    @FXML private TextField txtUyeAdSoyad, txtUyeTelefon, txtUyeEposta;
+
+    @FXML private TableView<Uye> tabloUyeler;
+    @FXML private TableColumn<Uye, String> colUyeAdSoyad, colUyeTelefon, colUyeEposta;
+    private ObservableList<Uye> uyeListesi = FXCollections.observableArrayList();
+    @FXML private TableColumn<Uye, Integer> colUyeId;
+
+    @FXML
+    private void sayfaUyeGoster() {
+        pnlKitapEkle.setVisible(false);
+        pnlKitapListele.setVisible(false);
+        pnlUyeYonetimi.setVisible(true); // Üye panelini açar, diğerlerini gizler
+    }
+
+    private Uye duzenlenecekUye = null; // Düzenleme modunu anlamak için
+
+    @FXML
+    public void uyeSilButonunaTiklandi() {
+        Uye secili = tabloUyeler.getSelectionModel().getSelectedItem();
+        if (secili == null) return;
+        String sql = "DELETE FROM uyeler WHERE id = ?";
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, secili.getId());
+            pstmt.executeUpdate();
+            tabloyuUyeVerileriyleDoldur();
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    @FXML
+    public void uyeDuzenleButonunaTiklandi() {
+        duzenlenecekUye = tabloUyeler.getSelectionModel().getSelectedItem();
+        if (duzenlenecekUye == null) return;
+        txtUyeAdSoyad.setText(duzenlenecekUye.getAdSoyad());
+        txtUyeTelefon.setText(duzenlenecekUye.getTelefon());
+        txtUyeEposta.setText(duzenlenecekUye.getEposta());
+    }
+
+    private void temizleVeYenile() {
+        txtUyeAdSoyad.clear(); txtUyeTelefon.clear(); txtUyeEposta.clear();
+        duzenlenecekUye = null;
+        tabloyuUyeVerileriyleDoldur();
+    }
+
+    @FXML
+    private void uyeKaydetButonunaTiklandi() {
+        String ad = txtUyeAdSoyad.getText();
+        String tel = txtUyeTelefon.getText();
+        String mail = txtUyeEposta.getText();
+
+        if (ad.isEmpty()) return; // İsim boşsa hiçbir şey yapma
+
+        String sql;
+        // Eğer duzenlenecekUye boşsa YENİ KAYIT yap, doluysa GÜNCELLEME yap
+        if (duzenlenecekUye == null) {
+            sql = "INSERT INTO uyeler (ad_soyad, telefon, eposta) VALUES (?, ?, ?)";
+        } else {
+            sql = "UPDATE uyeler SET ad_soyad=?, telefon=?, eposta=? WHERE id=?";
+        }
+
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, ad);
+            pstmt.setString(2, tel);
+            pstmt.setString(3, mail);
+
+            // GÜNCELLEME yapılıyorsa, 4. parametre olarak ID'yi gönderiyoruz
+            if (duzenlenecekUye != null) {
+                pstmt.setInt(4, duzenlenecekUye.getId());
+            }
+
+            pstmt.executeUpdate();
+
+            // İşlem bitince her şeyi sıfırla
+            duzenlenecekUye = null;
+            txtUyeAdSoyad.clear();
+            txtUyeTelefon.clear();
+            txtUyeEposta.clear();
+
+            tabloyuUyeVerileriyleDoldur(); // Tabloyu tazele!
+            System.out.println("Veritabanı başarıyla güncellendi!");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     private ObservableList<Kitap> kitapListesi = FXCollections.observableArrayList();
     private Kitap duzenlenecekKitap = null;
 
@@ -37,7 +126,21 @@ public class AnaEkranController {
         if (cbDurum != null) {
             cbDurum.getItems().addAll("Kütüphanede", "Emanette", "Okunuyor", "Kayıp");
             cbDurum.setValue("Kütüphanede");
+            pnlKitapEkle.setVisible(true);
+            pnlKitapListele.setVisible(false);
+            pnlUyeYonetimi.setVisible(false); // Bunu ekle!
+
+            tabloyuVerilerleDoldur();
+            // Üye Tablosu Sütun Ayarları
+            colUyeAdSoyad.setCellValueFactory(new PropertyValueFactory<>("adSoyad"));
+            colUyeTelefon.setCellValueFactory(new PropertyValueFactory<>("telefon"));
+            colUyeEposta.setCellValueFactory(new PropertyValueFactory<>("eposta"));
+
+            tabloyuUyeVerileriyleDoldur(); // Başlangıçta verileri çek
+            colUyeId.setCellValueFactory(new PropertyValueFactory<>("id"));
         }
+
+
 
         colKitapAdi.setCellValueFactory(new PropertyValueFactory<>("kitapAdi"));
         colYazar.setCellValueFactory(new PropertyValueFactory<>("yazar"));
@@ -76,6 +179,7 @@ public class AnaEkranController {
         txtKiminElinde.clear();
         pnlKitapEkle.setVisible(true);
         pnlKitapListele.setVisible(false);
+        pnlUyeYonetimi.setVisible(false);
     }
 
     @FXML
@@ -83,6 +187,7 @@ public class AnaEkranController {
         pnlKitapEkle.setVisible(false);
         pnlKitapListele.setVisible(true);
         tabloyuVerilerleDoldur();
+        pnlUyeYonetimi.setVisible(false);
     }
 
     @FXML
@@ -190,4 +295,27 @@ public class AnaEkranController {
         alert.setTitle(baslik); alert.setHeaderText(null); alert.setContentText(icerik);
         alert.showAndWait();
     }
+
+    private void tabloyuUyeVerileriyleDoldur() {
+        uyeListesi.clear();
+        String sql = "SELECT * FROM uyeler";
+
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                uyeListesi.add(new Uye(
+                        rs.getInt("id"),
+                        rs.getString("ad_soyad"),
+                        rs.getString("telefon"),
+                        rs.getString("eposta")
+                ));
+            }
+            tabloUyeler.setItems(uyeListesi);
+        } catch (SQLException e) {
+            System.err.println("Üye listesi çekilirken hata: " + e.getMessage());
+        }
+    }
+
 }
