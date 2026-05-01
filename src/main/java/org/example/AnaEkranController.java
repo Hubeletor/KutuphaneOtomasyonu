@@ -10,7 +10,6 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.AnchorPane;
 
-// PostgreSQL için gerekli SQL kütüphaneleri
 import java.sql.*;
 
 public class AnaEkranController {
@@ -20,8 +19,9 @@ public class AnaEkranController {
     private final String USER = "neondb_owner";
     private final String PASSWORD = "npg_6qi9dCQKRzgr";
 
-    @FXML private AnchorPane pnlKitapEkle, pnlKitapListele;
+    @FXML private AnchorPane pnlKitapEkle, pnlKitapListele, pnlUyeYonetimi;
     @FXML private TextField txtKitapAdi, txtYazar, txtSayfaSayisi, txtKiminElinde;
+    @FXML private TextField txtUyeAdSoyad, txtUyeTelefon, txtUyeEposta, txtUyeAra;
     @FXML private ComboBox<String> cbDurum;
     @FXML private Button btnKaydet;
 
@@ -29,38 +29,111 @@ public class AnaEkranController {
     @FXML private TableColumn<Kitap, String> colKitapAdi, colYazar, colDurum;
     @FXML private TextField txtKitapAra;
 
-    @FXML private AnchorPane pnlUyeYonetimi;
-    @FXML private TextField txtUyeAdSoyad, txtUyeTelefon, txtUyeEposta;
-
     @FXML private TableView<Uye> tabloUyeler;
     @FXML private TableColumn<Uye, String> colUyeAdSoyad, colUyeTelefon, colUyeEposta;
-    private ObservableList<Uye> uyeListesi = FXCollections.observableArrayList();
     @FXML private TableColumn<Uye, Integer> colUyeId;
 
+    private ObservableList<Uye> uyeListesi = FXCollections.observableArrayList();
+    private ObservableList<Kitap> kitapListesi = FXCollections.observableArrayList();
+    private Uye duzenlenecekUye = null;
+    private Kitap duzenlenecekKitap = null;
+
     @FXML
-    private void sayfaUyeGoster() {
-        pnlKitapEkle.setVisible(false);
+    public void initialize() {
+        // Tablo Sütun Ayarları
+        setupTableColumns();
+
+        if (cbDurum != null) {
+            cbDurum.getItems().addAll("Kütüphanede", "Emanette", "Okunuyor", "Kayıp");
+            cbDurum.setValue("Kütüphanede");
+        }
+
+        // Verileri Çek
+        tabloyuVerilerleDoldur();
+        tabloyuUyeVerileriyleDoldur();
+
+        // Arama Mantıklarını Kur
+        setupSearchLogics();
+
+        // İlk sayfa görünümü
+        pnlKitapEkle.setVisible(true);
         pnlKitapListele.setVisible(false);
-        pnlUyeYonetimi.setVisible(true); // Üye panelini açar, diğerlerini gizler
+        pnlUyeYonetimi.setVisible(false);
     }
 
-    private Uye duzenlenecekUye = null; // Düzenleme modunu anlamak için
+    private void setupTableColumns() {
+        colKitapAdi.setCellValueFactory(new PropertyValueFactory<>("kitapAdi"));
+        colYazar.setCellValueFactory(new PropertyValueFactory<>("yazar"));
+        colDurum.setCellValueFactory(new PropertyValueFactory<>("durum"));
 
-    @FXML
-    public void uyeSilButonunaTiklandi() {
-        Uye secili = tabloUyeler.getSelectionModel().getSelectedItem();
-        if (secili == null) return;
-        String sql = "DELETE FROM uyeler WHERE id = ?";
+        colUyeId.setCellValueFactory(new PropertyValueFactory<>("id"));
+        colUyeAdSoyad.setCellValueFactory(new PropertyValueFactory<>("adSoyad"));
+        colUyeTelefon.setCellValueFactory(new PropertyValueFactory<>("telefon"));
+        colUyeEposta.setCellValueFactory(new PropertyValueFactory<>("eposta"));
+    }
+
+    private void setupSearchLogics() {
+        // Kitap Arama
+        FilteredList<Kitap> filtrelenmisKitaplar = new FilteredList<>(kitapListesi, p -> true);
+        txtKitapAra.textProperty().addListener((obs, eski, yeni) -> {
+            filtrelenmisKitaplar.setPredicate(kitap -> {
+                if (yeni == null || yeni.isEmpty()) return true;
+                String filtre = yeni.toLowerCase();
+                return kitap.getKitapAdi().toLowerCase().contains(filtre) ||
+                        kitap.getYazar().toLowerCase().contains(filtre);
+            });
+        });
+        SortedList<Kitap> siraliKitaplar = new SortedList<>(filtrelenmisKitaplar);
+        siraliKitaplar.comparatorProperty().bind(tabloKitaplar.comparatorProperty());
+        tabloKitaplar.setItems(siraliKitaplar);
+
+        // Üye Arama
+        FilteredList<Uye> filtrelenmisUyeler = new FilteredList<>(uyeListesi, p -> true);
+        txtUyeAra.textProperty().addListener((obs, eski, yeni) -> {
+            filtrelenmisUyeler.setPredicate(uye -> {
+                if (yeni == null || yeni.isEmpty()) return true;
+                String filtre = yeni.toLowerCase();
+                return uye.getAdSoyad().toLowerCase().contains(filtre) ||
+                        uye.getTelefon().contains(filtre);
+            });
+        });
+        SortedList<Uye> siraliUyeler = new SortedList<>(filtrelenmisUyeler);
+        siraliUyeler.comparatorProperty().bind(tabloUyeler.comparatorProperty());
+        tabloUyeler.setItems(siraliUyeler);
+    }
+
+    // --- ÜYE İŞLEMLERİ ---
+
+    @FXML private void sayfaUyeGoster() {
+        pnlKitapEkle.setVisible(false); pnlKitapListele.setVisible(false); pnlUyeYonetimi.setVisible(true);
+    }
+
+    @FXML private void uyeKaydetButonunaTiklandi() {
+        String ad = txtUyeAdSoyad.getText(); String tel = txtUyeTelefon.getText(); String mail = txtUyeEposta.getText();
+        if (ad.isEmpty()) return;
+
+        String sql = (duzenlenecekUye == null) ? "INSERT INTO uyeler (ad_soyad, telefon, eposta) VALUES (?, ?, ?)" : "UPDATE uyeler SET ad_soyad=?, telefon=?, eposta=? WHERE id=?";
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, ad); pstmt.setString(2, tel); pstmt.setString(3, mail);
+            if (duzenlenecekUye != null) pstmt.setInt(4, duzenlenecekUye.getId());
+            pstmt.executeUpdate();
+            temizleVeYenile();
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    @FXML public void uyeSilButonunaTiklandi() {
+        Uye secili = tabloUyeler.getSelectionModel().getSelectedItem();
+        if (secili == null) return;
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
+             PreparedStatement pstmt = conn.prepareStatement("DELETE FROM uyeler WHERE id = ?")) {
             pstmt.setInt(1, secili.getId());
             pstmt.executeUpdate();
             tabloyuUyeVerileriyleDoldur();
         } catch (SQLException e) { e.printStackTrace(); }
     }
 
-    @FXML
-    public void uyeDuzenleButonunaTiklandi() {
+    @FXML public void uyeDuzenleButonunaTiklandi() {
         duzenlenecekUye = tabloUyeler.getSelectionModel().getSelectedItem();
         if (duzenlenecekUye == null) return;
         txtUyeAdSoyad.setText(duzenlenecekUye.getAdSoyad());
@@ -74,248 +147,75 @@ public class AnaEkranController {
         tabloyuUyeVerileriyleDoldur();
     }
 
-    @FXML
-    private void uyeKaydetButonunaTiklandi() {
-        String ad = txtUyeAdSoyad.getText();
-        String tel = txtUyeTelefon.getText();
-        String mail = txtUyeEposta.getText();
-
-        if (ad.isEmpty()) return; // İsim boşsa hiçbir şey yapma
-
-        String sql;
-        // Eğer duzenlenecekUye boşsa YENİ KAYIT yap, doluysa GÜNCELLEME yap
-        if (duzenlenecekUye == null) {
-            sql = "INSERT INTO uyeler (ad_soyad, telefon, eposta) VALUES (?, ?, ?)";
-        } else {
-            sql = "UPDATE uyeler SET ad_soyad=?, telefon=?, eposta=? WHERE id=?";
-        }
-
+    private void tabloyuUyeVerileriyleDoldur() {
+        uyeListesi.clear();
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, ad);
-            pstmt.setString(2, tel);
-            pstmt.setString(3, mail);
-
-            // GÜNCELLEME yapılıyorsa, 4. parametre olarak ID'yi gönderiyoruz
-            if (duzenlenecekUye != null) {
-                pstmt.setInt(4, duzenlenecekUye.getId());
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM uyeler")) {
+            while (rs.next()) {
+                uyeListesi.add(new Uye(rs.getInt("id"), rs.getString("ad_soyad"), rs.getString("telefon"), rs.getString("eposta")));
             }
-
-            pstmt.executeUpdate();
-
-            // İşlem bitince her şeyi sıfırla
-            duzenlenecekUye = null;
-            txtUyeAdSoyad.clear();
-            txtUyeTelefon.clear();
-            txtUyeEposta.clear();
-
-            tabloyuUyeVerileriyleDoldur(); // Tabloyu tazele!
-            System.out.println("Veritabanı başarıyla güncellendi!");
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
     }
 
-    private ObservableList<Kitap> kitapListesi = FXCollections.observableArrayList();
-    private Kitap duzenlenecekKitap = null;
+    // --- KİTAP İŞLEMLERİ ---
 
-    @FXML
-    public void initialize() {
-        if (cbDurum != null) {
-            cbDurum.getItems().addAll("Kütüphanede", "Emanette", "Okunuyor", "Kayıp");
-            cbDurum.setValue("Kütüphanede");
-            pnlKitapEkle.setVisible(true);
-            pnlKitapListele.setVisible(false);
-            pnlUyeYonetimi.setVisible(false); // Bunu ekle!
+    @FXML public void sayfaEkleGoster(ActionEvent event) {
+        duzenlenecekKitap = null; btnKaydet.setText("Kitabı Kaydet");
+        txtKitapAdi.clear(); txtYazar.clear(); txtKiminElinde.clear();
+        pnlKitapEkle.setVisible(true); pnlKitapListele.setVisible(false); pnlUyeYonetimi.setVisible(false);
+    }
 
+    @FXML public void sayfaListeGoster(ActionEvent event) {
+        pnlKitapEkle.setVisible(false); pnlKitapListele.setVisible(true); pnlUyeYonetimi.setVisible(false);
+        tabloyuVerilerleDoldur();
+    }
+
+    @FXML public void kitapEkleButonunaTiklandi(ActionEvent event) {
+        String kitapAdi = txtKitapAdi.getText(); String yazar = txtYazar.getText(); String durum = cbDurum.getValue();
+        if (kitapAdi.isEmpty() || yazar.isEmpty()) return;
+        String sql = (duzenlenecekKitap == null) ? "INSERT INTO kitaplar (kitap_adi, yazar, durum) VALUES (?, ?, ?)" : "UPDATE kitaplar SET kitap_adi=?, yazar=?, durum=? WHERE kitap_adi=?";
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, kitapAdi); pstmt.setString(2, yazar); pstmt.setString(3, durum);
+            if (duzenlenecekKitap != null) pstmt.setString(4, duzenlenecekKitap.getKitapAdi());
+            pstmt.executeUpdate();
+            duzenlenecekKitap = null; btnKaydet.setText("Kitabı Kaydet");
+            txtKitapAdi.clear(); txtYazar.clear();
             tabloyuVerilerleDoldur();
-            // Üye Tablosu Sütun Ayarları
-            colUyeAdSoyad.setCellValueFactory(new PropertyValueFactory<>("adSoyad"));
-            colUyeTelefon.setCellValueFactory(new PropertyValueFactory<>("telefon"));
-            colUyeEposta.setCellValueFactory(new PropertyValueFactory<>("eposta"));
-
-            tabloyuUyeVerileriyleDoldur(); // Başlangıçta verileri çek
-            colUyeId.setCellValueFactory(new PropertyValueFactory<>("id"));
-        }
-
-
-
-        colKitapAdi.setCellValueFactory(new PropertyValueFactory<>("kitapAdi"));
-        colYazar.setCellValueFactory(new PropertyValueFactory<>("yazar"));
-        colDurum.setCellValueFactory(new PropertyValueFactory<>("durum"));
-
-        FilteredList<Kitap> filtrelenmisVeri = new FilteredList<>(kitapListesi, p -> true);
-        txtKitapAra.textProperty().addListener((observable, oldValue, newValue) -> {
-            filtrelenmisVeri.setPredicate(kitap -> {
-                if (newValue == null || newValue.isEmpty()) return true;
-                String kucukHarfFiltre = newValue.toLowerCase();
-                return kitap.getKitapAdi().toLowerCase().contains(kucukHarfFiltre) ||
-                        kitap.getYazar().toLowerCase().contains(kucukHarfFiltre);
-            });
-        });
-
-        SortedList<Kitap> siraliVeri = new SortedList<>(filtrelenmisVeri);
-        siraliVeri.comparatorProperty().bind(tabloKitaplar.comparatorProperty());
-        tabloKitaplar.setItems(siraliVeri);
-
-        pnlKitapEkle.setVisible(true);
-        pnlKitapListele.setVisible(false);
-
-        tabloyuVerilerleDoldur();
-
-        pnlKitapEkle.setVisible(true);
-        pnlKitapListele.setVisible(false);
-
+        } catch (SQLException e) { e.printStackTrace(); }
     }
 
-    @FXML
-    public void sayfaEkleGoster(ActionEvent event) {
-        duzenlenecekKitap = null;
-        btnKaydet.setText("Kitabı Kaydet");
-        txtKitapAdi.clear();
-        txtYazar.clear();
-        txtKiminElinde.clear();
-        pnlKitapEkle.setVisible(true);
-        pnlKitapListele.setVisible(false);
-        pnlUyeYonetimi.setVisible(false);
-    }
-
-    @FXML
-    public void sayfaListeGoster(ActionEvent event) {
-        pnlKitapEkle.setVisible(false);
-        pnlKitapListele.setVisible(true);
-        tabloyuVerilerleDoldur();
-        pnlUyeYonetimi.setVisible(false);
-    }
-
-    @FXML
-    public void kitapEkleButonunaTiklandi(ActionEvent event) {
-        String kitapAdi = txtKitapAdi.getText();
-        String yazar = txtYazar.getText();
-        String durum = cbDurum.getValue();
-        String kiminElinde = txtKiminElinde.getText();
-
-        if (kitapAdi.isEmpty() || yazar.isEmpty()) {
-            mesajGoster("Uyarı", "Boş alan bırakmayın!", Alert.AlertType.WARNING);
-            return;
-        }
-
-        String sql;
-        if (duzenlenecekKitap == null) {
-            // Ekleme sorgusu
-            sql = "INSERT INTO kitaplar (kitap_adi, yazar, durum, kimin_elinde) VALUES (?, ?, ?, ?)";
-        } else {
-            // Güncelleme sorgusu
-            sql = "UPDATE kitaplar SET kitap_adi=?, yazar=?, durum=?, kimin_elinde=? WHERE kitap_adi=?";
-        }
-
+    @FXML public void kitapSilButonunaTiklandi(ActionEvent event) {
+        Kitap secili = tabloKitaplar.getSelectionModel().getSelectedItem();
+        if (secili == null) return;
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, kitapAdi);
-            pstmt.setString(2, yazar);
-            pstmt.setString(3, durum);
-            pstmt.setString(4, durum.equals("Emanette") ? kiminElinde : "-");
-
-            if (duzenlenecekKitap != null) {
-                pstmt.setString(5, duzenlenecekKitap.getKitapAdi());
-            }
-
+             PreparedStatement pstmt = conn.prepareStatement("DELETE FROM kitaplar WHERE kitap_adi = ?")) {
+            pstmt.setString(1, secili.getKitapAdi());
             pstmt.executeUpdate();
-            mesajGoster("Başarılı", duzenlenecekKitap == null ? "Kitap başarıyla eklendi!" : "Kitap başarıyla güncellendi!", Alert.AlertType.INFORMATION);
-
-            duzenlenecekKitap = null;
-            btnKaydet.setText("Kitabı Kaydet");
-            txtKitapAdi.clear(); txtYazar.clear(); txtKiminElinde.clear();
-
-        } catch (SQLException e) {
-            mesajGoster("Veritabanı Hatası", "Hata oluştu: " + e.getMessage(), Alert.AlertType.ERROR);
-        }
+            tabloyuVerilerleDoldur();
+        } catch (SQLException e) { e.printStackTrace(); }
     }
 
-    @FXML
-    public void kitapSilButonunaTiklandi(ActionEvent event) {
-        Kitap seciliKitap = tabloKitaplar.getSelectionModel().getSelectedItem();
-        if (seciliKitap == null) return;
-
-        if (new Alert(Alert.AlertType.CONFIRMATION, "Silmek istediğinize emin misiniz?").showAndWait().get() == ButtonType.OK) {
-            String sql = "DELETE FROM kitaplar WHERE kitap_adi = ?";
-            try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
-                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-                pstmt.setString(1, seciliKitap.getKitapAdi());
-                pstmt.executeUpdate();
-                tabloyuVerilerleDoldur(); // Tabloyu yenile
-
-            } catch (SQLException e) {
-                mesajGoster("Hata", "Silme işlemi başarısız: " + e.getMessage(), Alert.AlertType.ERROR);
-            }
-        }
+    @FXML public void kitapDuzenleButonunaTiklandi(ActionEvent event) {
+        Kitap secili = tabloKitaplar.getSelectionModel().getSelectedItem();
+        if (secili == null) return;
+        duzenlenecekKitap = secili;
+        btnKaydet.setText("Değişiklikleri Güncelle");
+        txtKitapAdi.setText(secili.getKitapAdi());
+        txtYazar.setText(secili.getYazar());
+        cbDurum.setValue(secili.getDurum());
+        pnlKitapEkle.setVisible(true); pnlKitapListele.setVisible(false);
     }
 
     private void tabloyuVerilerleDoldur() {
         kitapListesi.clear();
-        String sql = "SELECT * FROM kitaplar";
-
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
+             ResultSet rs = stmt.executeQuery("SELECT * FROM kitaplar")) {
             while (rs.next()) {
-                kitapListesi.add(new Kitap(
-                        rs.getString("kitap_adi"),
-                        rs.getString("yazar"),
-                        rs.getString("durum")
-                ));
+                kitapListesi.add(new Kitap(rs.getString("kitap_adi"), rs.getString("yazar"), rs.getString("durum")));
             }
-        } catch (SQLException e) {
-            System.err.println("Veri çekme hatası: " + e.getMessage());
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
     }
-
-    @FXML
-    public void kitapDuzenleButonunaTiklandi(ActionEvent event) {
-        Kitap seciliKitap = tabloKitaplar.getSelectionModel().getSelectedItem();
-        if (seciliKitap == null) return;
-
-        duzenlenecekKitap = seciliKitap;
-        btnKaydet.setText("Değişiklikleri Güncelle");
-        txtKitapAdi.setText(seciliKitap.getKitapAdi());
-        txtYazar.setText(seciliKitap.getYazar());
-        cbDurum.setValue(seciliKitap.getDurum());
-
-        pnlKitapEkle.setVisible(true);
-        pnlKitapListele.setVisible(false);
-    }
-
-    private void mesajGoster(String baslik, String icerik, Alert.AlertType tip) {
-        Alert alert = new Alert(tip);
-        alert.setTitle(baslik); alert.setHeaderText(null); alert.setContentText(icerik);
-        alert.showAndWait();
-    }
-
-    private void tabloyuUyeVerileriyleDoldur() {
-        uyeListesi.clear();
-        String sql = "SELECT * FROM uyeler";
-
-        try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                uyeListesi.add(new Uye(
-                        rs.getInt("id"),
-                        rs.getString("ad_soyad"),
-                        rs.getString("telefon"),
-                        rs.getString("eposta")
-                ));
-            }
-            tabloUyeler.setItems(uyeListesi);
-        } catch (SQLException e) {
-            System.err.println("Üye listesi çekilirken hata: " + e.getMessage());
-        }
-    }
-
 }

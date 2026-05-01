@@ -69,7 +69,8 @@
                               <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
                            </padding>
                         </VBox>
-                        <TableView fx:id="tabloUyeler" layoutX="179.0" layoutY="43.0" prefHeight="475.0" prefWidth="300.0" AnchorPane.bottomAnchor="50.0" AnchorPane.rightAnchor="170.0" AnchorPane.topAnchor="50.0">
+                        <TextField fx:id="txtUyeAra" layoutX="188.0" layoutY="14.0" prefHeight="26.0" prefWidth="297.0" promptText="Üye adı veya telefon ile ara..." />
+                        <TableView fx:id="tabloUyeler" layoutX="179.0" layoutY="51.2" prefHeight="370.0" prefWidth="458.0" AnchorPane.bottomAnchor="51.0" AnchorPane.leftAnchor="185.0" AnchorPane.rightAnchor="5.684341886080802E-14" AnchorPane.topAnchor="51.0">
                           <columns>
                             <TableColumn fx:id="colUyeId" prefWidth="75.0" text="ID" />
                             <TableColumn fx:id="colUyeAdSoyad" prefWidth="75.0" text="Ad Soyad" />

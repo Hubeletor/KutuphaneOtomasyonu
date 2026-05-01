@@ -5,4 +5,4 @@ public class Main {
         // JavaFX'i sorunsuz başlatmak için aracı kullanıyoruz
         ArayuzApp.main(args);
     }
-}
+}   
