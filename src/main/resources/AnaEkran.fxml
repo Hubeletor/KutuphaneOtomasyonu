@@ -20,7 +20,7 @@
             <VBox prefHeight="200.0" prefWidth="100.0" style="-fx-background-color: #2c3e50;" BorderPane.alignment="CENTER">
                <children>
                   <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sayfaEkleGoster" prefHeight="50.0" styleClass="havali-buton" text="Kitap Ekle" />
-                  <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sayfaListeGoster" prefHeight="50.0" styleClass="havali-buton" text="Kitap Listele" />
+                  <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sayfaListeGoster" prefHeight="50.0" styleClass="havali-buton" text="Kitap Listesi" />
                   <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sayfaUyeGoster" prefHeight="50.0" styleClass="havali-buton" text="Üye Yönetimi" />
                </children>
             </VBox>
@@ -28,13 +28,14 @@
          <center>
             <StackPane BorderPane.alignment="CENTER">
                <children>
-                  <AnchorPane fx:id="pnlKitapListele" prefHeight="200.0" prefWidth="200.0" visible="false">
+                  <AnchorPane fx:id="pnlKitapListele" prefHeight="200.0" prefWidth="200.0">
                      <children>
                         <Button fx:id="btnDuzenle" layoutX="365.0" layoutY="20.0" mnemonicParsing="false" onAction="#kitapDuzenleButonunaTiklandi" text="Seçili Kitabı Düzenle" />
                         <Button fx:id="btnSil" layoutX="258.0" layoutY="20.0" mnemonicParsing="false" onAction="#kitapSilButonunaTiklandi" text="Seçili Kitabı Sil" />
                         <TextField fx:id="txtKitapAra" layoutX="90.0" layoutY="20.0" promptText="Kitap adı veya yazar ara..." />
                         <TableView fx:id="tabloKitaplar" layoutY="67.0" prefHeight="404.0" prefWidth="502.0">
                           <columns>
+                              <TableColumn fx:id="colKitapId" prefWidth="75.0" text="ID" />
                             <TableColumn fx:id="colKitapAdi" prefWidth="124.79999542236328" text="Kitap Adı" />
                             <TableColumn fx:id="colYazar" prefWidth="160.0" text="Yazar" />
                               <TableColumn fx:id="colDurum" minWidth="0.0" prefWidth="147.99996948242188" text="Durum" />
@@ -57,7 +58,7 @@
                         <Button fx:id="btnKaydet" layoutX="207.0" layoutY="252.0" mnemonicParsing="false" onAction="#kitapEkleButonunaTiklandi" text="Kitabı Kaydet" />
                      </children>
                   </AnchorPane>
-                  <AnchorPane fx:id="pnlUyeYonetimi" prefHeight="456.0" prefWidth="489.0">
+                  <AnchorPane fx:id="pnlUyeYonetimi" prefHeight="456.0" prefWidth="489.0" visible="false">
                      <children>
                         <VBox alignment="CENTER_LEFT" layoutX="13.0" layoutY="141.0" prefHeight="158.0" prefWidth="181.0" spacing="15.0">
                            <children>

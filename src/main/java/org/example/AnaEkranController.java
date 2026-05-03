@@ -27,6 +27,7 @@ public class AnaEkranController {
 
     @FXML private TableView<Kitap> tabloKitaplar;
     @FXML private TableColumn<Kitap, String> colKitapAdi, colYazar, colDurum;
+    @FXML private TableColumn<Kitap, Integer> colKitapId;
     @FXML private TextField txtKitapAra;
 
     @FXML private TableView<Uye> tabloUyeler;
@@ -62,6 +63,7 @@ public class AnaEkranController {
     }
 
     private void setupTableColumns() {
+        colKitapId.setCellValueFactory(new PropertyValueFactory<>("id"));
         colKitapAdi.setCellValueFactory(new PropertyValueFactory<>("kitapAdi"));
         colYazar.setCellValueFactory(new PropertyValueFactory<>("yazar"));
         colDurum.setCellValueFactory(new PropertyValueFactory<>("durum"));
@@ -187,14 +189,23 @@ public class AnaEkranController {
     }
 
     @FXML public void kitapSilButonunaTiklandi(ActionEvent event) {
-        Kitap secili = tabloKitaplar.getSelectionModel().getSelectedItem();
-        if (secili == null) return;
-        try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
-             PreparedStatement pstmt = conn.prepareStatement("DELETE FROM kitaplar WHERE kitap_adi = ?")) {
-            pstmt.setString(1, secili.getKitapAdi());
-            pstmt.executeUpdate();
-            tabloyuVerilerleDoldur();
-        } catch (SQLException e) { e.printStackTrace(); }
+        Kitap seciliKitap = tabloKitaplar.getSelectionModel().getSelectedItem();
+        if (seciliKitap == null) return;
+
+        if (new Alert(Alert.AlertType.CONFIRMATION, "Bu kitabı silmek istediğinize emin misiniz?").showAndWait().get() == ButtonType.OK) {
+            // Sorguyu ID'ye göre güncelledik
+            String sql = "DELETE FROM kitaplar WHERE id = ?";
+            try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
+                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                pstmt.setInt(1, seciliKitap.getId()); // İsim yerine ID gönderiyoruz
+                pstmt.executeUpdate();
+                tabloyuVerilerleDoldur();
+
+            } catch (SQLException e) {
+                mesajGoster("Hata", "Silme işlemi başarısız: " + e.getMessage(), Alert.AlertType.ERROR);
+            }
+        }
     }
 
     @FXML public void kitapDuzenleButonunaTiklandi(ActionEvent event) {
@@ -210,12 +221,29 @@ public class AnaEkranController {
 
     private void tabloyuVerilerleDoldur() {
         kitapListesi.clear();
+        String sql = "SELECT * FROM kitaplar";
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT * FROM kitaplar")) {
+             ResultSet rs = stmt.executeQuery(sql)) {
+
             while (rs.next()) {
-                kitapListesi.add(new Kitap(rs.getString("kitap_adi"), rs.getString("yazar"), rs.getString("durum")));
+                // rs.getInt("id") kısmını ekledik
+                kitapListesi.add(new Kitap(
+                        rs.getInt("id"),
+                        rs.getString("kitap_adi"),
+                        rs.getString("yazar"),
+                        rs.getString("durum")
+                ));
             }
         } catch (SQLException e) { e.printStackTrace(); }
     }
+
+    private void mesajGoster(String baslik, String icerik, Alert.AlertType tip) {
+        Alert alert = new Alert(tip);
+        alert.setTitle(baslik);
+        alert.setHeaderText(null);
+        alert.setContentText(icerik);
+        alert.showAndWait();
+    }
+
 }
