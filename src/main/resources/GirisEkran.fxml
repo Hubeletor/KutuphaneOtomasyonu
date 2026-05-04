@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane prefHeight="350.0" prefWidth="500.0" style="-fx-background-color: #2c3e50;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.GirisController">
+    <children>
+        <VBox alignment="CENTER" layoutX="100.0" layoutY="50.0" spacing="20.0" AnchorPane.bottomAnchor="50.0" AnchorPane.leftAnchor="100.0" AnchorPane.rightAnchor="100.0" AnchorPane.topAnchor="50.0">
+            <children>
+                <Label text="Kütüphane Sistemi Giriş" textFill="WHITE">
+                    <font>
+                        <Font name="System Bold" size="24.0" />
+                    </font>
+                </Label>
+                <TextField fx:id="txtKullaniciAdi" prefHeight="35.0" promptText="Kullanıcı Adı" style="-fx-background-radius: 15;" />
+                <PasswordField fx:id="txtSifre" prefHeight="35.0" promptText="Şifre" style="-fx-background-radius: 15;" />
+                <Button fx:id="btnGiris" mnemonicParsing="false" onAction="#girisYap" prefHeight="40.0" prefWidth="150.0" style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-background-radius: 20;" text="Giriş Yap">
+                    <font>
+                        <Font name="System Bold" size="14.0" />
+                    </font>
+                </Button>
+                <Label fx:id="lblMesaj" textFill="#e74c3c" />
+            </children>
+        </VBox>
+    </children>
+</AnchorPane>

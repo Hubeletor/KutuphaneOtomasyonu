@@ -11,13 +11,13 @@ public class ArayuzApp extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        // Tasarım dosyamızı yüklüyoruz
-        // Eğer "Location is not set" hatası alırsan buradaki "/AnaEkran.fxml" yazısından / işaretini sil
-        Parent kok = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/AnaEkran.fxml")));
+        // Giriş ekranını yüklüyoruz
+        Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/GirisEkran.fxml")));
 
-        primaryStage.setTitle("Kütüphane Yönetim Sistemi v1.0");
-        Scene sahne = new Scene(kok, 800, 600);
-        primaryStage.setScene(sahne);
+        primaryStage.setTitle("Sistem Girişi");
+        Scene scene = new Scene(root, 500, 350);
+        primaryStage.setScene(scene);
+        primaryStage.setResizable(false);
         primaryStage.show();
     }
 
