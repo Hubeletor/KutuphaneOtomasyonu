@@ -33,8 +33,7 @@ public class AnaEkranController {
     @FXML private TableColumn<Uye, String> colUyeAdSoyad, colUyeTelefon, colUyeEposta;
     @FXML private TableColumn<Uye, Integer> colUyeId;
 
-    // Emanet Sistemi Elemanları
-    @FXML private TextField txtEmanetKitapAra, txtEmanetUyeAra;
+    @FXML private TextField txtEmanetKitapAra, txtEmanetUyeAra, txtEmanetTabloAra; // txtEmanetTabloAra eklendi
     @FXML private ComboBox<String> cbEmanetKitap, cbEmanetUye;
     @FXML private DatePicker dpTeslimTarihi;
     @FXML private TableView<Emanet> tabloEmanetler;
@@ -57,9 +56,9 @@ public class AnaEkranController {
             cbDurum.setValue("Kütüphanede");
         }
 
+        setupSearchLogics(); // Arama mantıkları verilerden önce kurulmalı
         tabloyuVerilerleDoldur();
         tabloyuUyeVerileriyleDoldur();
-        setupSearchLogics();
 
         pnlKitapEkle.setVisible(true);
         pnlKitapListele.setVisible(false);
@@ -87,33 +86,47 @@ public class AnaEkranController {
     }
 
     private void setupSearchLogics() {
-        // Kitap ve Üye Ana Sayfa Aramaları
+        // Kitap Araması
         FilteredList<Kitap> filtrelenmisKitaplar = new FilteredList<>(kitapListesi, p -> true);
         txtKitapAra.textProperty().addListener((obs, eski, yeni) -> {
             filtrelenmisKitaplar.setPredicate(kitap -> {
                 if (yeni == null || yeni.isEmpty()) return true;
-                String filtre = yeni.toLowerCase();
-                return kitap.getKitapAdi().toLowerCase().contains(filtre) ||
-                        kitap.getYazar().toLowerCase().contains(filtre);
+                return kitap.getKitapAdi().toLowerCase().contains(yeni.toLowerCase()) ||
+                        kitap.getYazar().toLowerCase().contains(yeni.toLowerCase());
             });
         });
         SortedList<Kitap> siraliKitaplar = new SortedList<>(filtrelenmisKitaplar);
         siraliKitaplar.comparatorProperty().bind(tabloKitaplar.comparatorProperty());
         tabloKitaplar.setItems(siraliKitaplar);
 
+        // Üye Araması
         FilteredList<Uye> filtrelenmisUyeler = new FilteredList<>(uyeListesi, p -> true);
         txtUyeAra.textProperty().addListener((obs, eski, yeni) -> {
             filtrelenmisUyeler.setPredicate(uye -> {
                 if (yeni == null || yeni.isEmpty()) return true;
-                String filtre = yeni.toLowerCase();
-                return uye.getAdSoyad().toLowerCase().contains(filtre) || uye.getTelefon().contains(filtre);
+                return uye.getAdSoyad().toLowerCase().contains(yeni.toLowerCase()) ||
+                        uye.getTelefon().contains(yeni);
             });
         });
         SortedList<Uye> siraliUyeler = new SortedList<>(filtrelenmisUyeler);
         siraliUyeler.comparatorProperty().bind(tabloUyeler.comparatorProperty());
         tabloUyeler.setItems(siraliUyeler);
 
-        // --- YENİ: EMANET SİSTEMİ DİNAMİK ARAMA MANTIĞI ---
+        // --- YENİ: EMANET TABLOSU ARAMASI ---
+        FilteredList<Emanet> filtrelenmisEmanetler = new FilteredList<>(emanetListesi, p -> true);
+        txtEmanetTabloAra.textProperty().addListener((obs, eski, yeni) -> {
+            filtrelenmisEmanetler.setPredicate(emanet -> {
+                if (yeni == null || yeni.isEmpty()) return true;
+                String filtre = yeni.toLowerCase();
+                return emanet.getKitapAdi().toLowerCase().contains(filtre) ||
+                        emanet.getUyeAdi().toLowerCase().contains(filtre);
+            });
+        });
+        SortedList<Emanet> siraliEmanetler = new SortedList<>(filtrelenmisEmanetler);
+        siraliEmanetler.comparatorProperty().bind(tabloEmanetler.comparatorProperty());
+        tabloEmanetler.setItems(siraliEmanetler);
+
+        // ComboBox dinamik aramaları
         txtEmanetKitapAra.textProperty().addListener((obs, eski, yeni) -> doldurEmanetKitapComboBox(yeni));
         txtEmanetUyeAra.textProperty().addListener((obs, eski, yeni) -> doldurEmanetUyeComboBox(yeni));
     }
@@ -132,12 +145,12 @@ public class AnaEkranController {
     private void emanetFormunuGuncelle() {
         txtEmanetKitapAra.clear();
         txtEmanetUyeAra.clear();
+        txtEmanetTabloAra.clear();
         doldurEmanetKitapComboBox("");
         doldurEmanetUyeComboBox("");
         dpTeslimTarihi.setValue(null);
     }
 
-    // Aranan kelimeye göre Kitap ComboBox'ını doldurur
     private void doldurEmanetKitapComboBox(String filtre) {
         cbEmanetKitap.getItems().clear();
         for (Kitap k : kitapListesi) {
@@ -149,7 +162,6 @@ public class AnaEkranController {
         }
     }
 
-    // Aranan kelimeye göre Üye ComboBox'ını doldurur
     private void doldurEmanetUyeComboBox(String filtre) {
         cbEmanetUye.getItems().clear();
         for (Uye u : uyeListesi) {
@@ -196,6 +208,46 @@ public class AnaEkranController {
         } catch (SQLException e) { e.printStackTrace(); }
     }
 
+    // YENİ EKLENEN İADE ALMA / SİLME METODU
+    @FXML
+    private void emanetIadeAlButonunaTiklandi() {
+        Emanet seciliEmanet = tabloEmanetler.getSelectionModel().getSelectedItem();
+
+        if (seciliEmanet == null) {
+            mesajGoster("Uyarı", "Lütfen iade alınacak kaydı tablodan seçiniz!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        if (new Alert(Alert.AlertType.CONFIRMATION, "Bu kitabı teslim almak ve emaneti kapatmak istediğinize emin misiniz?").showAndWait().get() == ButtonType.OK) {
+
+            // 1. Kitabı Kütüphanede yap
+            String updateKitapSql = "UPDATE kitaplar SET durum = 'Kütüphanede' WHERE id = (SELECT kitap_id FROM emanetler WHERE id = ?)";
+            // 2. Emanet kaydını sil
+            String deleteEmanetSql = "DELETE FROM emanetler WHERE id = ?";
+
+            try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD)) {
+                try (PreparedStatement pstmt1 = conn.prepareStatement(updateKitapSql);
+                     PreparedStatement pstmt2 = conn.prepareStatement(deleteEmanetSql)) {
+
+                    // Kitap stok durumunu güncelle
+                    pstmt1.setInt(1, seciliEmanet.getId());
+                    pstmt1.executeUpdate();
+
+                    // Emanet kaydını sil
+                    pstmt2.setInt(1, seciliEmanet.getId());
+                    pstmt2.executeUpdate();
+
+                    tabloyuVerilerleDoldur(); // Stok durumu yenilenir
+                    tabloyuEmanetVerileriyleDoldur(); // Liste yenilenir
+                    emanetFormunuGuncelle(); // ComboBox'lar yenilenir
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                mesajGoster("Hata", "İşlem sırasında hata: " + e.getMessage(), Alert.AlertType.ERROR);
+            }
+        }
+    }
+
     private void tabloyuEmanetVerileriyleDoldur() {
         emanetListesi.clear();
         String sql = "SELECT e.id, k.kitap_adi, u.ad_soyad, e.alma_tarihi, e.teslim_tarihi, e.durum " +
@@ -211,7 +263,6 @@ public class AnaEkranController {
                         rs.getString("durum")
                 ));
             }
-            tabloEmanetler.setItems(emanetListesi);
         } catch (SQLException e) { e.printStackTrace(); }
     }
 

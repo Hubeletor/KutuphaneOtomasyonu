@@ -14,11 +14,11 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="400.0" prefWidth="600.0" stylesheets="@tema.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.AnaEkranController">
+<AnchorPane prefHeight="600.0" prefWidth="800.0" stylesheets="@tema.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.AnaEkranController">
    <children>
       <BorderPane prefHeight="400.0" prefWidth="600.0" stylesheets="@tema.css" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <left>
-            <VBox prefHeight="200.0" prefWidth="100.0" style="-fx-background-color: #2c3e50;" BorderPane.alignment="CENTER">
+            <VBox prefHeight="200.0" prefWidth="130.0" style="-fx-background-color: #2c3e50;" BorderPane.alignment="CENTER">
                <children>
                   <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sayfaEkleGoster" prefHeight="50.0" styleClass="havali-buton" text="Kitap Ekle" />
                   <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sayfaListeGoster" prefHeight="50.0" styleClass="havali-buton" text="Kitap Listesi" />
@@ -100,7 +100,7 @@
                      </children>
                   </AnchorPane>
 
-                  <!-- EMANET İŞLEMLERİ PANELİ (Gelişmiş Arama Özellikli) -->
+                  <!-- EMANET İŞLEMLERİ PANELİ (İade Butonu ve Genel Arama Eklendi) -->
                   <AnchorPane fx:id="pnlEmanetIslemleri" prefHeight="456.0" prefWidth="489.0" visible="false">
                      <children>
                         <Label layoutX="14.0" layoutY="14.0" text="KİTABI EMANET VER" textFill="#1162dc">
@@ -109,17 +109,19 @@
                            </font>
                         </Label>
 
-                        <!-- Arama Kutuları (Yeni Eklendi) -->
                         <TextField fx:id="txtEmanetKitapAra" layoutX="14.0" layoutY="45.0" prefWidth="130.0" promptText="Kitap Ara..." />
                         <TextField fx:id="txtEmanetUyeAra" layoutX="155.0" layoutY="45.0" prefWidth="130.0" promptText="Üye Ara..." />
 
-                        <!-- Seçim Kutuları ve Butonlar (Aşağı kaydırıldı) -->
                         <ComboBox fx:id="cbEmanetKitap" layoutX="14.0" layoutY="75.0" prefWidth="130.0" promptText="Kitap Seç" />
                         <ComboBox fx:id="cbEmanetUye" layoutX="155.0" layoutY="75.0" prefWidth="130.0" promptText="Üye Seç" />
                         <DatePicker fx:id="dpTeslimTarihi" layoutX="295.0" layoutY="75.0" prefWidth="110.0" promptText="İade Tarihi" />
                         <Button layoutX="415.0" layoutY="75.0" mnemonicParsing="false" onAction="#emanetVerButonunaTiklandi" text="Emanet Ver" />
 
-                        <TableView fx:id="tabloEmanetler" layoutX="14.0" layoutY="120.0" prefHeight="310.0" prefWidth="470.0" AnchorPane.bottomAnchor="14.0" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="14.0" AnchorPane.topAnchor="120.0">
+                        <!-- YENİ EKLENEN KISIM: Tablo Araması ve İade Butonu -->
+                        <TextField fx:id="txtEmanetTabloAra" layoutX="14.0" layoutY="120.0" prefWidth="250.0" promptText="Emanet listesinde kitap veya üye ara..." />
+                        <Button layoutX="280.0" layoutY="120.0" mnemonicParsing="false" onAction="#emanetIadeAlButonunaTiklandi" text="Seçili Kitabı İade Al / Sil" />
+
+                        <TableView fx:id="tabloEmanetler" layoutX="14.0" layoutY="160.0" prefHeight="270.0" prefWidth="470.0" AnchorPane.bottomAnchor="14.0" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="14.0" AnchorPane.topAnchor="160.0">
                            <columns>
                               <TableColumn fx:id="colEmanetId" prefWidth="30.0" text="ID" />
                               <TableColumn fx:id="colEmanetKitapAdi" prefWidth="120.0" text="Kitap Adı" />
